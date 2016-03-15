@@ -12,6 +12,7 @@ For compiling the applications please follow the steps:
 2 - Edit the Makefile setting TOOLCHAIN and CROSS_COMPILER according to your system
 
 3 - Set the environment variables:
+
     export ARCH=arm
     export ROOTFS_DIR=/usr/local/toradex-linux-v2.5/oe-core/build/out-glibc/sysroots/apalis-imx6
     
