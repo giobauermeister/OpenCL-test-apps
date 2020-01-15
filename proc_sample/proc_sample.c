@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	
 	printf("\nExecution time in miliseconds = %0.3f ms", ((double)ticks/CLOCKS_PER_SEC)*1000);
 	//printf("Finished in about %.3f miliseconds. \n", (difftime(stop, start))*1000);
-	printf("\nExecution time in seconds = %0.3f ms\n\n", (double)ticks/CLOCKS_PER_SEC);
+	printf("\nExecution time in seconds = %0.3f s\n\n", (double)ticks/CLOCKS_PER_SEC);
 	//printf("Finished in about %.3f seconds. \n", difftime(stop, start));
 
 	return 0;
