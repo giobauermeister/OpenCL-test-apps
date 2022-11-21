@@ -74,37 +74,45 @@ void copy_array(unsigned int source_arr[], unsigned int target_arr[], unsigned i
 bool KeepCalc(unsigned int arr[], unsigned int size)
 {
 
-    unsigned int *p1 = arr;
-    unsigned int *p2 = arr + size/2;
-    unsigned int *p3 = p2+1;
-    unsigned int *p4 = arr + size - 1;
-
-    while ( p1 < p2 || p3 < p4 )
+    if (size<4)
     {
 
-    if ( *p1 || *p2 || *p3 || *p4 ) {
-        return(true);
+        unsigned int *p1 = arr;
+        unsigned int *p2 = (arr+(size-1));
+
+        while (p1 < p2) {
+            if ( *p1++ || *p2-- )
+            {
+                return(true);
+            }
+        }
+        return(false);
+        
+    } else {
+
+        unsigned int *p1 = arr;
+        unsigned int *p2 = (arr+((size-1)/2));
+
+        unsigned int *p3 = (p2+1);
+        unsigned int *p4 = (arr+(size-1));
+
+        while (p1 < p2) {
+            if ( *p1++ || *p2-- )
+            {
+                return(true);
+            }
+            if (p3 < p4) {
+                if ( *p3++ || *p4-- )
+                {
+                    return(true);
+                }
+            }
+        }
+
+        return(false);
+        
     }
-
-    if (p1 < p2) {
-        p1++;
-    }
-
-    if (p2 > p1) {
-        p2--;
-    }
-
-    if (p3 < p4) {
-        p3++;
-    }
-
-    if (p4 > p3) {
-        p4--;
-    }
-
-}
-
-    return(false);
+  
 }
 
 // Main function
@@ -114,20 +122,20 @@ int main(int argc, char **argv)
     
     unsigned int nSize=SIZE;
     
-    switch (argc)  
-     {
-     case 2:          /* One parameter -- use input file & stdout. */
-       nSize = atoi( argv[1] );
-       if (!nSize) {
-          puts("invalid value.\n");
-          exit( 0 );
-       }
-       if (nSize>MAX_SIZE) {
+    switch(argc)  
+    {
+        case 2:          /* One parameter -- use input file & stdout. */
+        nSize = atoi( argv[1] );
+        if (!nSize) {
+            puts("invalid value.\n");
+            exit( 0 );
+        }
+        if (nSize>MAX_SIZE) {
           printf("invalid value [%u]. Using MAX_SIZE [%u]\n",nSize,MAX_SIZE);
           nSize=MAX_SIZE;
-       }       
-       break;
-     }    
+        }       
+        break;
+    }
     
     // Two integer source vectors in Host memory
     unsigned int HostVector1[nSize], HostVector2[nSize], HostVectorB=10;
