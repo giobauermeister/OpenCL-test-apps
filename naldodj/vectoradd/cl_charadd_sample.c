@@ -2,9 +2,13 @@
 // Demo OpenCL application to compute a simple vector addition
 // computation between 2 arrays on the GPU
 // ************************************************************
+#include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <inttypes.h>
+
 #include <CL/cl.h>
 
 // Some interesting data for the vectors
@@ -23,19 +27,19 @@ unsigned int InitialData2[DATA_SIZE] = {0,2,5,7,8,5,9,9,4,3,9,7,5,6,8,8,9,9,9,8,
 */
 
 // Max Number of elements in the vectors to be added
-#define MAX_SIZE 16384 // ?
+#define MAX_SIZE 9999 // ?
 
 // OpenCL source code
 const char* OpenCLSource = {
-    "__kernel void VectorAdd(__global unsigned int* restrict iVRet1"
-    "                       ,__global unsigned int* restrict iVRet2"
+    "__kernel void VectorAdd(__global char* restrict iVRet1"
+    "                       ,__global char* restrict iVRet2"
     "                       ,constant unsigned int* restrict iBase"
-    "                       ,constant unsigned int* restrict iVGet1"
-    "                       ,constant unsigned int* restrict iVGet2)"
+    "                       ,constant char* restrict iVGet1"
+    "                       ,constant char* restrict iVGet2)"
     "{"
     "   unsigned int n = get_global_id(0);"
-    "   unsigned int ivG1 = iVGet1[n];"
-    "   unsigned int ivG2 = iVGet2[n];"
+    "   unsigned int ivG1 = iVGet1[n]-'0';"
+    "   unsigned int ivG2 = iVGet2[n]-'0';"
     "   unsigned int s = (ivG1+ivG2);"
     "   unsigned int b = iBase[0];"
     "   bool bChange = (s>=b);"
@@ -45,47 +49,95 @@ const char* OpenCLSource = {
     "       v-=b;"
     "       v1=1;"
     "   }"
-    "   iVRet2[n-1] = v1;"
-    "   iVRet1[n] = v;"
+    "   iVRet2[n-1] = v1+'0';"
+    "   iVRet1[n] = v+'0';"
     "}"
 };
 
-void copy_array(unsigned int source_arr[], unsigned int target_arr[], unsigned long long int size)
+static char cNumber(const long long unsigned int iNumber){
+    char cNumber;
+    static const char * st__sNumber="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    static const long long unsigned int st_iNumber=strlen(st__sNumber);
+    cNumber=st__sNumber[(iNumber<=st_iNumber?iNumber:0)];
+    return(cNumber);
+}
+
+static unsigned long long int iNumber(const char * cNumber){
+
+    const char cN=*(cNumber);
+
+    long long int iNumber;
+
+    if (isdigit(cN))
+    {
+        iNumber=(cN-'0');
+    }
+    else
+    {
+
+        int j=(-1);
+
+        if (isalpha(cN))
+        {
+
+            long long int i;
+
+            static const char * st__cNumber[62]={"0","1","2","3","4","5","6","7","8","9"
+                                            ,"A","B","C","D","E","F","G","H","I","J"
+                                            ,"K","L","M","N","O","P","Q","R","S","T"
+                                            ,"U","V","W","X","Y","Z","a","b","c","d"
+                                            ,"e","f","g","h","i","j","k","l","m","n"
+                                            ,"o","p","q","r","s","t","u","v","w","x"
+                                            ,"y","z"
+                                };
+
+            for (i=0;(i<sizeof(st__cNumber));i++)
+            {
+                if (strncmp(cNumber,st__cNumber[i],1)==0)
+                {
+                    j=i;
+                    break;
+                }
+            }
+
+        }
+
+        iNumber=( j >= 0 ? j : 0 );
+
+    }
+    return(iNumber);
+}
+
+void copy_array(char * source_arr, char * target_arr)
 {
 
-    unsigned int *source_ptrs = source_arr;
-    unsigned int *target_ptrs = target_arr;
+    unsigned long long int source_ptrs = 0;
+    unsigned long long int target_ptrs = 0;
 
-    unsigned int *source_ptre = &source_arr[size - 1];
-    unsigned int *target_ptre = &target_arr[size - 1];
+    unsigned long long int source_ptre = strlen(source_arr);
+    unsigned long long int target_ptre = strlen(target_arr);
 
     while(source_ptrs <= source_ptre)
     {
-
-        *target_ptrs = *source_ptrs;
-        *target_ptre = *source_ptre;
-
-        source_ptrs++;
-        target_ptrs++;
-
-        source_ptre--;
-        target_ptre--;
-
+        target_arr[target_ptrs++] = source_arr[source_ptrs++];
+        target_arr[target_ptre--] = source_arr[source_ptre--];
     }
 
 }
 
-bool KeepCalc(unsigned int arr[], unsigned long long int size)
+bool KeepCalc(char * arr)
 {
 
-    if (size<4)
+    unsigned long long int sStrLen=strlen(arr);
+
+    if (sStrLen<4)
     {
 
-        unsigned int *p1 = arr;
-        unsigned int *p2 = (arr+(size-1));
+        unsigned long long int p1 = 0;
+        unsigned long long int p2 = sStrLen;
 
         while (p1 < p2) {
-            if ( *p1++ || *p2-- )
+            if ( iNumber(&arr[p1])==1 || iNumber(&arr[p2--])==1 )
             {
                 return(true);
             }
@@ -95,25 +147,25 @@ bool KeepCalc(unsigned int arr[], unsigned long long int size)
 
     } else {
 
-        unsigned int *p1 = arr;
-        unsigned int *p2 = (arr+((size-1)/2));
+        unsigned long long int p1 = 0;
+        unsigned long long int p2 = (sStrLen/2);
 
-        unsigned int *p3 = (p2+1);
-        unsigned int *p4 = (arr+(size-1));
+        unsigned long long int p3 = (p2+1);
+        unsigned long long int p4 = sStrLen;
 
         while (p1 < p2) {
-            if ( *p1++ || *p2-- )
+            if ( iNumber(&arr[p1++])==1 || iNumber(&arr[p2--])==1 )
             {
                 return(true);
             }
             if (p3 < p4) {
-                if ( *p3++ || *p4-- )
+                if ( iNumber(&arr[p3++])==1 || iNumber(&arr[p4--])==1 )
                 {
                     return(true);
                 }
             }
         }
-
+        
         return(false);
 
     }
@@ -125,8 +177,8 @@ bool KeepCalc(unsigned int arr[], unsigned long long int size)
 int main(int argc, char **argv)
 {
 
-    unsigned long long int nSize=(unsigned long long int)SIZE;
-    unsigned long long int nMaxSize=(unsigned long long int)MAX_SIZE;
+    unsigned long long int nSize=(unsigned long long int)(SIZE);
+    unsigned long long int nMaxSize=(unsigned long long int)(MAX_SIZE);
 
     switch(argc)
     {
@@ -144,21 +196,30 @@ int main(int argc, char **argv)
     }
 
     // Two integer source vectors in Host memory
-    unsigned int HostVector1[nSize], HostVector2[nSize], HostVectorB=10;
+    char * HostVector1=(char*)malloc(nSize*sizeof(char*));
+    char * HostVector2=(char*)malloc(nSize*sizeof(char*));
+
+    unsigned int HostVectorB=10;
 
     //Output Vector
-    unsigned int HostOutputVector0[nSize];
-    unsigned int HostOutputVector1[nSize];
+    char * HostOutputVector0=(char*)malloc(nSize*sizeof(char*));
+    char * HostOutputVector1=(char*)malloc(nSize*sizeof(char*));
 
     // Initialize with some interesting repeating data
-    unsigned int c;
+    int c;
     for(c = 0; c < nSize; c++)
     {
-      HostVector1[c] = InitialData1[c%DATA_SIZE];
-      HostVector2[c] = InitialData2[c%DATA_SIZE];
-      HostOutputVector0[c] = 0;
-      HostOutputVector1[c] = 0;
+      HostVector1[c] = cNumber(InitialData1[c%DATA_SIZE]);
+      HostVector2[c] = cNumber(InitialData2[c%DATA_SIZE]);
+      HostOutputVector0[c] = cNumber(0);
+      HostOutputVector1[c] = cNumber(0);
     }
+
+    HostVector1[c]='\0';
+    HostVector2[c]='\0';
+    HostOutputVector0[c]='\0';
+    HostOutputVector1[c]='\0';
+
     //Get an OpenCL platform
     cl_platform_id cpPlatform;
     clGetPlatformIDs(1, &cpPlatform, NULL);
@@ -188,26 +249,26 @@ int main(int argc, char **argv)
     cl_kernel OpenCLVectorAdd = clCreateKernel(OpenCLProgram, "VectorAdd", NULL);
 
     bool bKeekCalc = false;
-    unsigned int iStep = 0;
+    int iStep = 0;
     do
     {
 
         // Allocate GPU memory for source vectors AND initialize from CPU memory
         cl_mem GPUVector1 = clCreateBuffer(GPUContext, CL_MEM_READ_ONLY |
-        CL_MEM_COPY_HOST_PTR, sizeof(unsigned int) * nSize, HostVector1, NULL);
+        CL_MEM_COPY_HOST_PTR, sizeof(char *) * nSize, HostVector1, NULL);
         cl_mem GPUVector2 = clCreateBuffer(GPUContext, CL_MEM_READ_ONLY |
-        CL_MEM_COPY_HOST_PTR, sizeof(unsigned int) * nSize, HostVector2, NULL);
+        CL_MEM_COPY_HOST_PTR, sizeof(char *) * nSize, HostVector2, NULL);
         cl_mem GPUVectorB = clCreateBuffer(GPUContext, CL_MEM_READ_ONLY |
-        CL_MEM_COPY_HOST_PTR, sizeof(unsigned int) , &HostVectorB, NULL);
+        CL_MEM_COPY_HOST_PTR, sizeof(unsigned int*) , &HostVectorB, NULL);
 
         // Allocate output memory on GPU
         cl_mem GPUOutputVector0 = clCreateBuffer(GPUContext, CL_MEM_WRITE_ONLY|
         CL_MEM_COPY_HOST_PTR,
-        sizeof(unsigned int) * nSize, HostOutputVector0, NULL);
+        sizeof(char *) * nSize, HostOutputVector0, NULL);
         // Allocate output memory on GPU
         cl_mem GPUOutputVector1 = clCreateBuffer(GPUContext, CL_MEM_WRITE_ONLY|
         CL_MEM_COPY_HOST_PTR,
-        sizeof(unsigned int) * nSize, HostOutputVector1, NULL);
+        sizeof(char *) * nSize, HostOutputVector1, NULL);
 
         // In the next step we associate the GPU memory with the Kernel arguments
         clSetKernelArg(OpenCLVectorAdd, 0, sizeof(cl_mem), (void*)&GPUOutputVector0);
@@ -224,37 +285,32 @@ int main(int argc, char **argv)
 
         // Copy the output in GPU memory back to CPU memory
         clEnqueueReadBuffer(cqCommandQueue, GPUOutputVector0, CL_TRUE, 0,
-        (sizeof(unsigned int) * nSize), HostOutputVector0, 0, NULL, NULL);
+        (sizeof(char *) * nSize), HostOutputVector0, 0, NULL, NULL);
         // Copy the output in GPU memory back to CPU memory
         clEnqueueReadBuffer(cqCommandQueue, GPUOutputVector1, CL_TRUE, 0,
-        (sizeof(unsigned int) * nSize), HostOutputVector1, 0, NULL, NULL);
+        (sizeof(char *) * nSize), HostOutputVector1, 0, NULL, NULL);
 
-        bKeekCalc = KeepCalc(HostOutputVector1,nSize);
-
+        bKeekCalc = KeepCalc(HostOutputVector1);
+        
         if ( ++iStep==1 || !bKeekCalc) {
-        unsigned int i;
-        if (iStep==1) {
-            for( i=0 ; i < nSize; i++)
-                printf("%u",HostVector1[i]);
-            printf("\n");
-            for( i=0 ; i < nSize; i++)
-                printf("%u",HostVector2[i]);
-            printf(" (+)\n");
-
-            for( i=0 ; i < ((nSize>144)?144:nSize); i++)
-                printf("-");
-            printf("\n");
-         } else {
-             for( i=0 ; i < nSize; i++)
-                  printf("%u",HostOutputVector0[i]);
-             printf(" (=)\n");
-         }
+            if (iStep==1) {
+                printf("%s \n",HostVector1);
+                printf("");
+                printf("%s (+)\n",HostVector2);
+                int i;
+                for( i=0 ; i < ((nSize>144)?144:nSize); i++)
+                    printf("-");
+                printf("\n");
+             } else {
+                 printf("%s (=)\n",HostOutputVector0);
+             }
         }
+
 
         if (bKeekCalc)
         {
-            copy_array(HostOutputVector1,HostVector1,nSize);
-            copy_array(HostOutputVector0,HostVector2,nSize);
+            copy_array(HostOutputVector1,HostVector1);
+            copy_array(HostOutputVector0,HostVector2);
         }
 
         // Cleanup
@@ -273,6 +329,13 @@ int main(int argc, char **argv)
     clReleaseProgram(OpenCLProgram);
     clReleaseKernel(OpenCLVectorAdd);
     clReleaseCommandQueue(cqCommandQueue);
+
+/*
+    free(HostVector1);
+    free(HostVector2);
+    free(HostOutputVector0);
+    free(HostOutputVector1);
+*/
 
  return 0;
 }
