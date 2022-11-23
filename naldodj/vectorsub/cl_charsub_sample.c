@@ -249,7 +249,7 @@ int main(int argc, char **argv)
     // Create a handle to the compiled OpenCL function (Kernel)
     cl_kernel OpenCLVectorSub = clCreateKernel(OpenCLProgram, "VectorSub", NULL);
 
-    bool bKeekCalc = false;
+    bool bKeepCalc = false;
     int iStep = 0;
     do
     {
@@ -291,9 +291,9 @@ int main(int argc, char **argv)
         clEnqueueReadBuffer(cqCommandQueue, GPUOutputVector1, CL_TRUE, 0,
         (sizeof(char *) * nSize), HostOutputVector1, 0, NULL, NULL);
 
-        bKeekCalc = KeepCalc(HostOutputVector1);
+        bKeepCalc = KeepCalc(HostOutputVector1);
         
-        if ( ++iStep==1 || !bKeekCalc) {
+        if ( ++iStep==1 || !bKeepCalc) {
             if (iStep==1) {
                 printf("%s \n",HostVector1);
                 printf("");
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
         }
 
 
-        if (bKeekCalc)
+        if (bKeepCalc)
         {
             copy_array(HostOutputVector0,HostVector1);
             copy_array(HostOutputVector1,HostVector2);
@@ -321,7 +321,7 @@ int main(int argc, char **argv)
         clReleaseMemObject(GPUOutputVector0);
         clReleaseMemObject(GPUOutputVector1);
 
-    } while (bKeekCalc);
+    } while (bKeepCalc);
 
     printf("\n");
 
