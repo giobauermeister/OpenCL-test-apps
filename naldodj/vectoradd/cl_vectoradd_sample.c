@@ -120,75 +120,19 @@ bool KeepCalc(unsigned int arr[], unsigned long long int size)
 
 }
 
-// Main function
-// ************************************************************
-int main(int argc, char **argv)
+unsigned int * VectorAdd(unsigned int HostVector1[],unsigned int HostVector2[],unsigned int HostVectorB, unsigned long long int nSize,cl_context GPUContext,cl_kernel OpenCLVectorAdd,cl_command_queue cqCommandQueue,unsigned int HostOutputVector0[])
 {
 
-    unsigned long long int nSize=(unsigned long long int)SIZE;
-    unsigned long long int nMaxSize=(unsigned long long int)MAX_SIZE;
-
-    switch(argc)
-    {
-        case 2:          /* One parameter -- use input file & stdout. */
-        nSize = (unsigned long long int)atoi( argv[1] );
-        if (!nSize) {
-            puts("invalid value.\n");
-            exit( 0 );
-        }
-        if (nSize>nMaxSize) {
-          printf("invalid value [%u]. Using MAX_SIZE [%u]\n",nSize,nMaxSize);
-          nSize=nMaxSize;
-        }
-        break;
-    }
-
-    // Two integer source vectors in Host memory
-    unsigned int HostVector1[nSize], HostVector2[nSize], HostVectorB=10;
-
-    //Output Vector
-    unsigned int HostOutputVector0[nSize];
     unsigned int HostOutputVector1[nSize];
-
-    // Initialize with some interesting repeating data
+    
     unsigned int c;
     for(c = 0; c < nSize; c++)
     {
-      HostVector1[c] = InitialData1[c%DATA_SIZE];
-      HostVector2[c] = InitialData2[c%DATA_SIZE];
       HostOutputVector0[c] = 0;
       HostOutputVector1[c] = 0;
     }
-    //Get an OpenCL platform
-    cl_platform_id cpPlatform;
-    clGetPlatformIDs(1, &cpPlatform, NULL);
-
-    // Get a GPU device
-    cl_device_id cdDevice;
-    clGetDeviceIDs(cpPlatform, CL_DEVICE_TYPE_GPU, 1, &cdDevice, NULL);
-    char cBuffer[1024];
-    clGetDeviceInfo(cdDevice, CL_DEVICE_NAME, sizeof(cBuffer), &cBuffer, NULL);
-    printf("\nCL_DEVICE_NAME: %s\n", cBuffer);
-    clGetDeviceInfo(cdDevice, CL_DRIVER_VERSION, sizeof(cBuffer), &cBuffer, NULL);
-    printf("CL_DRIVER_VERSION: %s\n\n", cBuffer);
-
-    // Create a context to run OpenCL enabled GPU
-    cl_context GPUContext = clCreateContextFromType(0, CL_DEVICE_TYPE_GPU, NULL, NULL, NULL);
-
-    // Create a command-queue on the GPU device
-    cl_command_queue cqCommandQueue = clCreateCommandQueue(GPUContext, cdDevice, 0, NULL);
-
-    // Create OpenCL program with source code
-    cl_program OpenCLProgram = clCreateProgramWithSource(GPUContext, 1, (const char **) &OpenCLSource, NULL, NULL);
-
-    // Build the program (OpenCL JIT compilation)
-    clBuildProgram(OpenCLProgram, 0, NULL, NULL, NULL, NULL);
-
-    // Create a handle to the compiled OpenCL function (Kernel)
-    cl_kernel OpenCLVectorAdd = clCreateKernel(OpenCLProgram, "VectorAdd", NULL);
-
+    
     bool bKeepCalc = false;
-    unsigned int iStep = 0;
     do
     {
 
@@ -231,26 +175,6 @@ int main(int argc, char **argv)
 
         bKeepCalc = KeepCalc(HostOutputVector1,nSize);
 
-        if ( ++iStep==1 || !bKeepCalc) {
-        unsigned int i;
-        if (iStep==1) {
-            for( i=0 ; i < nSize; i++)
-                printf("%u",HostVector1[i]);
-            printf("\n");
-            for( i=0 ; i < nSize; i++)
-                printf("%u",HostVector2[i]);
-            printf(" (+)\n");
-
-            for( i=0 ; i < ((nSize>144)?144:nSize); i++)
-                printf("-");
-            printf("\n");
-         } else {
-             for( i=0 ; i < nSize; i++)
-                  printf("%u",HostOutputVector0[i]);
-             printf(" (=)\n");
-         }
-        }
-
         if (bKeepCalc)
         {
             copy_array(HostOutputVector1,HostVector1,nSize);
@@ -265,6 +189,95 @@ int main(int argc, char **argv)
         clReleaseMemObject(GPUOutputVector1);
 
     } while (bKeepCalc);
+
+    return((unsigned int*)HostOutputVector0);
+    
+}
+
+// Main function
+// ************************************************************
+int main(int argc, char **argv)
+{
+
+    unsigned long long int nSize=(unsigned long long int)SIZE;
+    unsigned long long int nMaxSize=(unsigned long long int)MAX_SIZE;
+
+    switch(argc)
+    {
+        case 2:          /* One parameter -- use input file & stdout. */
+        nSize = (unsigned long long int)atoi( argv[1] );
+        if (!nSize) {
+            puts("invalid value.\n");
+            exit( 0 );
+        }
+        if (nSize>nMaxSize) {
+          printf("invalid value [%u]. Using MAX_SIZE [%u]\n",nSize,nMaxSize);
+          nSize=nMaxSize;
+        }
+        break;
+    }
+
+    // Two integer source vectors in Host memory
+    unsigned int HostVector1[nSize], HostVector2[nSize], HostVectorB=10;
+
+    //Output Vector
+    unsigned int HostOutputVector0[nSize];
+
+    // Initialize with some interesting repeating data
+    unsigned int c;
+    for(c = 0; c < nSize; c++)
+    {
+      HostVector1[c] = InitialData1[c%DATA_SIZE];
+      HostVector2[c] = InitialData2[c%DATA_SIZE];
+    }
+
+    //Get an OpenCL platform
+    cl_platform_id cpPlatform;
+    clGetPlatformIDs(1, &cpPlatform, NULL);
+
+    // Get a GPU device
+    cl_device_id cdDevice;
+    clGetDeviceIDs(cpPlatform, CL_DEVICE_TYPE_GPU, 1, &cdDevice, NULL);
+    char cBuffer[1024];
+    clGetDeviceInfo(cdDevice, CL_DEVICE_NAME, sizeof(cBuffer), &cBuffer, NULL);
+    printf("\nCL_DEVICE_NAME: %s\n", cBuffer);
+    clGetDeviceInfo(cdDevice, CL_DRIVER_VERSION, sizeof(cBuffer), &cBuffer, NULL);
+    printf("CL_DRIVER_VERSION: %s\n\n", cBuffer);
+
+    // Create a context to run OpenCL enabled GPU
+    cl_context GPUContext = clCreateContextFromType(0, CL_DEVICE_TYPE_GPU, NULL, NULL, NULL);
+
+    // Create a command-queue on the GPU device
+    cl_command_queue cqCommandQueue = clCreateCommandQueue(GPUContext, cdDevice, 0, NULL);
+
+    // Create OpenCL program with source code
+    cl_program OpenCLProgram = clCreateProgramWithSource(GPUContext, 1, (const char **) &OpenCLSource, NULL, NULL);
+
+    // Build the program (OpenCL JIT compilation)
+    clBuildProgram(OpenCLProgram, 0, NULL, NULL, NULL, NULL);
+
+    // Create a handle to the compiled OpenCL function (Kernel)
+    cl_kernel OpenCLVectorAdd = clCreateKernel(OpenCLProgram, "VectorAdd", NULL);
+
+    unsigned int i;
+    
+    for( i=0 ; i < nSize; i++)
+        printf("%u",HostVector1[i]);
+    printf("\n");
+    
+    for( i=0 ; i < nSize; i++)
+        printf("%u",HostVector2[i]);
+    printf(" (+)\n");
+
+    for( i=0 ; i < ((nSize>144)?144:nSize); i++)
+        printf("-");
+    printf("\n");
+
+    *HostOutputVector0=*VectorAdd(HostVector1,HostVector2,HostVectorB,nSize,GPUContext,OpenCLVectorAdd,cqCommandQueue,HostOutputVector0);
+
+    for( i=0 ; i < nSize; i++)
+        printf("%u",HostOutputVector0[i]);
+    printf(" (=)\n");
 
     printf("\n");
 
