@@ -235,6 +235,7 @@ int main(int argc, char **argv)
     // Two integer source vectors in Host memory
     char * HostVector1=(char*)malloc(nSize*sizeof(char*));
     char * HostVector2=(char*)malloc(nSize*sizeof(char*));
+    char * HostVector3=(char*)malloc(nSize*sizeof(char*));
 
     unsigned int HostVectorB=10;
 
@@ -251,6 +252,8 @@ int main(int argc, char **argv)
 
     HostVector1[c]='\0';
     HostVector2[c]='\0';
+    
+    memcpy(HostVector3,HostVector2,nSize);
 
     //Get an OpenCL platform
     cl_platform_id cpPlatform;
@@ -295,6 +298,29 @@ int main(int argc, char **argv)
     printf("%s (=)\n",HostOutputVector0);
 
     printf("\n");
+
+    for( i=0 ; i < 100; i++)
+    {
+        memcpy(HostVector1,HostOutputVector0,nSize);
+
+        printf("%s\n",HostVector1);
+        printf("");
+
+        memcpy(HostVector2,HostVector3,nSize);
+        
+        printf("%s (+)\n",HostVector2);
+        
+        int i;
+        for( i=0 ; i < ((nSize>144)?144:nSize); i++)
+            printf("-");
+        printf("\n");
+
+        *HostOutputVector0=*VectorSub(HostVector1,HostVector2,HostVectorB,nSize,GPUContext,OpenCLVectorSub,cqCommandQueue,HostOutputVector0);
+        
+        printf("%s (=)\n",HostOutputVector0);
+        
+        printf("\n");
+    }
 
     // Cleanup
     clReleaseContext(GPUContext);

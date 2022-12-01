@@ -127,49 +127,7 @@ void copy_array(char * source_arr, char * target_arr)
 
 bool KeepCalc(char * arr)
 {
-
-    unsigned long long int sStrLen=strlen(arr);
-
-    if (sStrLen<4)
-    {
-
-        unsigned long long int p1 = 0;
-        unsigned long long int p2 = sStrLen;
-
-        while (p1 < p2) {
-            if ( iNumber(&arr[p1])==1 || iNumber(&arr[p2--])==1 )
-            {
-                return(true);
-            }
-        }
-        
-        return(false);
-
-    } else {
-
-        unsigned long long int p1 = 0;
-        unsigned long long int p2 = (sStrLen/2);
-
-        unsigned long long int p3 = (p2+1);
-        unsigned long long int p4 = sStrLen;
-
-        while (p1 < p2) {
-            if ( iNumber(&arr[p1++])==1 || iNumber(&arr[p2--])==1 )
-            {
-                return(true);
-            }
-            if (p3 < p4) {
-                if ( iNumber(&arr[p3++])==1 || iNumber(&arr[p4--])==1 )
-                {
-                    return(true);
-                }
-            }
-        }
-        
-        return(false);
-
-    }
-
+    return(strstr(arr,"1" )!=NULL);
 }
 
 char * VectorAdd(char * HostVector1,char * HostVector2,unsigned int HostVectorB, unsigned long long int nSize,cl_context GPUContext,cl_kernel OpenCLVectorAdd,cl_command_queue cqCommandQueue,char * HostOutputVector0)

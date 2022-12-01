@@ -1,5 +1,5 @@
 //************************************************************
-// Demo OpenCL application to compute a simple vector Subition
+// Demo OpenCL application to compute a simple vector addition
 // computation between 2 arrays on the GPU
 // ************************************************************
 #include <ctype.h>
@@ -17,41 +17,40 @@
 unsigned int InitialData1[DATA_SIZE] = {0,8,4,3,5,7,0,8,3,9,2,4,5,6,7,8,9,0,1,2,3,0,8,4,3,5,7,0,8,3,9,2,4,5,6,7,8,9,0,1,2,3};
 unsigned int InitialData2[DATA_SIZE] = {0,2,5,7,8,5,9,9,4,3,9,7,5,6,8,8,9,9,9,8,7,0,2,5,7,8,5,9,9,4,3,9,7,5,6,8,8,9,9,9,8,7};
 
-// Number of elements in the vectors to be Subed
+// Number of elements in the vectors to be added
 #define SIZE 144
 /* if SIZE == 144 then
-084357083924567890123084357083924567890123084357083924567890123084357083924567890123084357083924567890123084357083924567890123084357083924567890 
-025785994397568899987025785994397568899987025785994397568899987025785994397568899987025785994397568899987025785994397568899987025785994397568899 (-)
+084357083924567890123084357083924567890123084357083924567890123084357083924567890123084357083924567890123084357083924567890123084357083924567890
+025785994397568899987025785994397568899987025785994397568899987025785994397568899987025785994397568899987025785994397568899987025785994397568899 (+)
 ------------------------------------------------------------------------------------------------------------------------------------------------
-058571089526998990136058571089526998990136058571089526998990136058571089526998990136058571089526998990136058571089526998990136058571089526998991 (=)
-
+110143078322136790110110143078322136790110110143078322136790110110143078322136790110110143078322136790110110143078322136790110110143078322136789 (=)
 */
 
-// Max Number of elements in the vectors to be Subed
+// Max Number of elements in the vectors to be added
 #define MAX_SIZE 9999 // ?
 
 // OpenCL source code
 const char* OpenCLSource = {
-    "__kernel void VectorSub(__global char* restrict iVRet1"
+    "__kernel void VectorAdd(__global char* restrict iVRet1"
     "                       ,__global char* restrict iVRet2"
     "                       ,constant unsigned int* restrict iBase"
     "                       ,constant char* restrict iVGet1"
     "                       ,constant char* restrict iVGet2)"
     "{"
     "   unsigned int n = get_global_id(0);"
-    "   int ivG1 = (int)(iVGet1[n]-'0');"
-    "   int ivG2 = (int)(iVGet2[n]-'0');"
-    "   int s = (ivG1-ivG2);"
-    "   int b = iBase[0];"
-    "   bool bChange = (s<0);"
-    "   int v=s;"
+    "   unsigned int ivG1 = iVGet1[n]-'0';"
+    "   unsigned int ivG2 = iVGet2[n]-'0';"
+    "   unsigned int s = (ivG1+ivG2);"
+    "   unsigned int b = iBase[0];"
+    "   bool bChange = (s>=b);"
+    "   unsigned int v=s;"
     "   unsigned int v1=0;"
     "   if (bChange) {"
-    "       v+=b;"
+    "       v-=b;"
     "       v1=1;"
     "   }"
     "   iVRet2[n-1] = v1+'0';"
-    "   iVRet1[n] = ((unsigned int)v)+'0';"
+    "   iVRet1[n] = v+'0';"
     "}"
 };
 
@@ -131,21 +130,16 @@ bool KeepCalc(char * arr)
     return(strstr(arr,"1" )!=NULL);
 }
 
-char * VectorSub(char * HostVector1,char * HostVector2,unsigned int HostVectorB, unsigned long long int nSize,cl_context GPUContext,cl_kernel OpenCLVectorSub,cl_command_queue cqCommandQueue,char * HostOutputVector0)
+char * VectorAdd(char * HostVector1,char * HostVector2,unsigned int HostVectorB, unsigned long long int nSize,cl_context GPUContext,cl_kernel OpenCLVectorAdd,cl_command_queue cqCommandQueue,char * HostOutputVector0)
 {
-    
     char * HostOutputVector1=(char*)malloc(nSize*sizeof(char*));
-
+    
     // Initialize with some interesting repeating data
-    int c;
-    for(c = 0; c < nSize; c++)
-    {
-      HostOutputVector0[c] = cNumber(0);
-      HostOutputVector1[c] = cNumber(0);
-    }
+    memset(HostOutputVector0,'0',nSize);
+    HostOutputVector0[nSize]='\0';
 
-    HostOutputVector0[c]='\0';
-    HostOutputVector1[c]='\0';
+    memset(HostOutputVector1,'0',nSize);
+    HostOutputVector1[nSize]='\0';
     
     bool bKeepCalc = false;
     do
@@ -169,17 +163,20 @@ char * VectorSub(char * HostVector1,char * HostVector2,unsigned int HostVectorB,
         sizeof(char *) * nSize, HostOutputVector1, NULL);
 
         // In the next step we associate the GPU memory with the Kernel arguments
-        clSetKernelArg(OpenCLVectorSub, 0, sizeof(cl_mem), (void*)&GPUOutputVector0);
-        clSetKernelArg(OpenCLVectorSub, 1, sizeof(cl_mem), (void*)&GPUOutputVector1);
-        clSetKernelArg(OpenCLVectorSub, 2, sizeof(cl_mem), (void*)&GPUVectorB);
-        clSetKernelArg(OpenCLVectorSub, 3, sizeof(cl_mem), (void*)&GPUVector1);
-        clSetKernelArg(OpenCLVectorSub, 4, sizeof(cl_mem), (void*)&GPUVector2);
+        clSetKernelArg(OpenCLVectorAdd, 0, sizeof(cl_mem), (void*)&GPUOutputVector0);
+        clSetKernelArg(OpenCLVectorAdd, 1, sizeof(cl_mem), (void*)&GPUOutputVector1);
+        clSetKernelArg(OpenCLVectorAdd, 2, sizeof(cl_mem), (void*)&GPUVectorB);
+        clSetKernelArg(OpenCLVectorAdd, 3, sizeof(cl_mem), (void*)&GPUVector1);
+        clSetKernelArg(OpenCLVectorAdd, 4, sizeof(cl_mem), (void*)&GPUVector2);
 
         // Launch the Kernel on the GPU
         // This kernel only uses global data
         size_t WorkSize[1] = {nSize}; // one dimensional Range
-        clEnqueueNDRangeKernel(cqCommandQueue, OpenCLVectorSub, 1, NULL,
+        clEnqueueNDRangeKernel(cqCommandQueue, OpenCLVectorAdd, 1, NULL,
         WorkSize, NULL, 0, NULL, NULL);
+
+        /* Wait for calculations to be finished. */
+        clFinish(cqCommandQueue);
 
         // Copy the output in GPU memory back to CPU memory
         clEnqueueReadBuffer(cqCommandQueue, GPUOutputVector0, CL_TRUE, 0,
@@ -192,9 +189,11 @@ char * VectorSub(char * HostVector1,char * HostVector2,unsigned int HostVectorB,
 
         if (bKeepCalc)
         {
-            copy_array(HostOutputVector0,HostVector1);
-            copy_array(HostOutputVector1,HostVector2);
+            copy_array(HostOutputVector1,HostVector1);
+            copy_array(HostOutputVector0,HostVector2);
         }
+
+        clFlush(cqCommandQueue);
 
         // Cleanup
         clReleaseMemObject(GPUVector1);
@@ -203,8 +202,8 @@ char * VectorSub(char * HostVector1,char * HostVector2,unsigned int HostVectorB,
         clReleaseMemObject(GPUOutputVector0);
         clReleaseMemObject(GPUOutputVector1);
 
-    } while (bKeepCalc);    
-    
+    } while (bKeepCalc);
+
     return((char *)HostOutputVector0);
     
 }
@@ -235,7 +234,8 @@ int main(int argc, char **argv)
     // Two integer source vectors in Host memory
     char * HostVector1=(char*)malloc(nSize*sizeof(char*));
     char * HostVector2=(char*)malloc(nSize*sizeof(char*));
-
+    char * HostVector3=(char*)malloc(nSize*sizeof(char*));
+    
     unsigned int HostVectorB=10;
 
     //Output Vector
@@ -251,6 +251,8 @@ int main(int argc, char **argv)
 
     HostVector1[c]='\0';
     HostVector2[c]='\0';
+
+    memcpy(HostVector3,HostVector2,nSize);
 
     //Get an OpenCL platform
     cl_platform_id cpPlatform;
@@ -278,36 +280,52 @@ int main(int argc, char **argv)
     clBuildProgram(OpenCLProgram, 0, NULL, NULL, NULL, NULL);
 
     // Create a handle to the compiled OpenCL function (Kernel)
-    cl_kernel OpenCLVectorSub = clCreateKernel(OpenCLProgram, "VectorSub", NULL);
+    cl_kernel OpenCLVectorAdd = clCreateKernel(OpenCLProgram, "VectorAdd", NULL);
 
     printf("%s\n",HostVector1);
-    printf("");
     
-    printf("%s (-)\n",HostVector2);
+    printf("%s (+)\n",HostVector2);
     
     int i;
     for( i=0 ; i < ((nSize>144)?144:nSize); i++)
         printf("-");
     printf("\n");
 
-    *HostOutputVector0=*VectorSub(HostVector1,HostVector2,HostVectorB,nSize,GPUContext,OpenCLVectorSub,cqCommandQueue,HostOutputVector0);
+    *HostOutputVector0=*VectorAdd(HostVector1,HostVector2,HostVectorB,nSize,GPUContext,OpenCLVectorAdd,cqCommandQueue,HostOutputVector0);
 
     printf("%s (=)\n",HostOutputVector0);
 
     printf("\n");
 
+    for( i=0 ; i < 10; i++)
+    {
+        memcpy(HostVector1,HostOutputVector0,nSize);
+
+        printf("%s\n",HostVector1);
+        printf("");
+
+        memcpy(HostVector2,HostVector3,nSize);
+        
+        printf("%s (+)\n",HostVector2);
+        
+        int i;
+        for( i=0 ; i < ((nSize>144)?144:nSize); i++)
+            printf("-");
+        printf("\n");
+
+        *HostOutputVector0=*VectorAdd(HostVector1,HostVector2,HostVectorB,nSize,GPUContext,OpenCLVectorAdd,cqCommandQueue,HostOutputVector0);
+        
+        printf("%s (=)\n",HostOutputVector0);
+        
+        printf("\n");
+    }
+
     // Cleanup
     clReleaseContext(GPUContext);
     clReleaseProgram(OpenCLProgram);
-    clReleaseKernel(OpenCLVectorSub);
+    clReleaseKernel(OpenCLVectorAdd);
     clReleaseCommandQueue(cqCommandQueue);
 
-/*
-    free(HostVector1);
-    free(HostVector2);
-    free(HostOutputVector0);
-    free(HostOutputVector1);
-*/
-
  return 0;
+ 
 }
