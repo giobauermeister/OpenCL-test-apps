@@ -205,13 +205,14 @@ int main(int argc, char **argv)
     switch(argc)
     {
         case 2:          /* One parameter -- use input file & stdout. */
-        nSize = (unsigned long long int)atoi( argv[1] );
+        char *stopstring;
+        nSize = (unsigned long long int)strtoull( argv[1] , &stopstring , 10 );
         if (!nSize) {
             puts("invalid value.\n");
             exit( 0 );
         }
         if (nSize>nMaxSize) {
-          printf("invalid value [%u]. Using MAX_SIZE [%u]\n",nSize,nMaxSize);
+          printf("invalid value [%llu]. Using MAX_SIZE [%llu]\n",nSize,nMaxSize);
           nSize=nMaxSize;
         }
         break;
@@ -262,11 +263,11 @@ int main(int argc, char **argv)
     unsigned int i;
 
     for( i=0 ; i < nSize; i++)
-        printf("%u",HostVector1[i]);
+        printf("%llu",HostVector1[i]);
     printf("\n");
 
     for( i=0 ; i < nSize; i++)
-        printf("%u",HostVector2[i]);
+        printf("%llu",HostVector2[i]);
     printf(" (-)\n");
 
     for( i=0 ; i < ((nSize>144)?144:nSize); i++)
@@ -276,7 +277,7 @@ int main(int argc, char **argv)
     *HostOutputVector0=*VectorSub(HostVector1,HostVector2,HostVectorB,nSize,GPUContext,OpenCLVectorSub,cqCommandQueue,HostOutputVector0);
 
     for( i=0 ; i < nSize; i++)
-      printf("%u",HostOutputVector0[i]);
+      printf("%llu",HostOutputVector0[i]);
     printf(" (=)\n");
 
     printf("\n");

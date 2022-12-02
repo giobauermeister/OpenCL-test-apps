@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <limits.h>
 #include <inttypes.h>
 
 #include <CL/cl.h>
@@ -28,7 +29,7 @@ unsigned int InitialData2[DATA_SIZE] = {0,2,5,7,8,5,9,9,4,3,9,7,5,6,8,8,9,9,9,8,
 */
 
 // Max Number of elements in the vectors to be Subed
-#define MAX_SIZE 9999 // ?
+#define MAX_SIZE 9999 //ULONG_MAX // ?
 
 // OpenCL source code
 const char* OpenCLSource = {
@@ -220,13 +221,14 @@ int main(int argc, char **argv)
     switch(argc)
     {
         case 2:          /* One parameter -- use input file & stdout. */
-        nSize = (unsigned long long int)atoi( argv[1] );
+        char *stopstring;
+        nSize = (unsigned long long int)strtoull( argv[1] , &stopstring , 10 );
         if (!nSize) {
             puts("invalid value.\n");
             exit( 0 );
         }
         if (nSize>nMaxSize) {
-          printf("invalid value [%u]. Using MAX_SIZE [%u]\n",nSize,nMaxSize);
+          printf("invalid value [%llu]. Using MAX_SIZE [%llu]\n",nSize,nMaxSize);
           nSize=nMaxSize;
         }
         break;
